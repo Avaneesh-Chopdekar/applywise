@@ -2,6 +2,10 @@ from fastapi import FastAPI
 from contextlib import asynccontextmanager
 
 from .database import init_db
+from .logging import configure_logging, LogLevels
+
+
+configure_logging(LogLevels.info)
 
 
 @asynccontextmanager
