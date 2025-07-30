@@ -6,6 +6,7 @@ from .models import PaginatedResumes, Resume, ResumeListItem, ResumeUpdate
 
 async def fetch_resumes(
     search_name: str = None,
+    starred: bool = None,
     min_created_at: datetime = None,
     max_created_at: datetime = None,
     sort_by: str = "created_at",
@@ -20,6 +21,8 @@ async def fetch_resumes(
 
     if search_name:
         query["name"] = {"$regex": search_name, "$options": "i"}
+    if starred is not None:
+        query["starred"] = starred
     if min_created_at:
         query["created_at"] = {"$gte": min_created_at}
     if max_created_at:

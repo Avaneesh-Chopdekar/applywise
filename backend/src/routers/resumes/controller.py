@@ -23,6 +23,9 @@ async def get_all_resumes(
     search_name: Optional[str] = Query(
         None, description="Search by resume name (case-insensitive)"
     ),
+    starred: Optional[bool] = Query(
+        None, description="Filter by starred status (true/false)"
+    ),
     min_created_at: Optional[datetime] = Query(
         None, description="Filter by creation date (from)"
     ),
@@ -39,6 +42,7 @@ async def get_all_resumes(
 ):
     resumes = await fetch_resumes(
         search_name=search_name,
+        starred=starred,
         min_created_at=min_created_at,
         max_created_at=max_created_at,
         sort_by=sort_by,

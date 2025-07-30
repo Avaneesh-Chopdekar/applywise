@@ -60,6 +60,7 @@ class Resume(Document):
 
     user_id: str = Field(unique=True)
     name: str
+    starred: bool = False
     contact: Optional[Contact] = None
     education: List[Education] = Field(default_factory=list)
     experience: List[Experience] = Field(default_factory=list)
@@ -87,6 +88,7 @@ class ResumeUpdate(BaseModel):
 
 class ResumeListItem(BaseModel):
     name: str
+    starred: bool
     created_at: datetime
     updated_at: datetime
 
