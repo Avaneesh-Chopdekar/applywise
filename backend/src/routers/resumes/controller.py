@@ -1,6 +1,7 @@
 from datetime import datetime
-from fastapi import APIRouter, HTTPException, status
-from .models import Resume, ResumeUpdate
+from typing import Literal, Optional
+from fastapi import APIRouter, Query, status
+from .models import PaginatedResumes, Resume, ResumeUpdate
 
 from .service import (
     create_resume,
@@ -13,9 +14,38 @@ from .service import (
 router = APIRouter(prefix="/api/v1/resumes", tags=["Resumes"])
 
 
-@router.get("/")
-async def get_all_resumes():
-    resumes = await fetch_resumes()
+@router.get("/", response_model=PaginatedResumes, summary="List Resumes")
+async def get_all_resumes(
+    # Pagination
+    page: int = Query(1, ge=1, description="Page number"),
+    page_size: int = Query(10, ge=1, le=100, description="Number of items per page"),
+    # Filtering options
+    search_name: Optional[str] = Query(
+        None, description="Search by resume name (case-insensitive)"
+    ),
+    min_created_at: Optional[datetime] = Query(
+        None, description="Filter by creation date (from)"
+    ),
+    max_created_at: Optional[datetime] = Query(
+        None, description="Filter by creation date (to)"
+    ),
+    # Sorting options
+    sort_by: Literal["created_at", "updated_at", "name"] = Query(
+        "created_at", description="Field to sort by"
+    ),
+    sort_order: Literal["asc", "desc"] = Query(
+        "desc", description="Sort order (asc/desc)"
+    ),
+):
+    resumes = await fetch_resumes(
+        search_name=search_name,
+        min_created_at=min_created_at,
+        max_created_at=max_created_at,
+        sort_by=sort_by,
+        sort_order=sort_order,
+        page=page,
+        page_size=page_size,
+    )
     return resumes
 
 

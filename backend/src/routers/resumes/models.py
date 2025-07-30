@@ -83,3 +83,21 @@ class ResumeUpdate(BaseModel):
     experience: Optional[List[Experience]] = None
     projects: Optional[List[Project]] = None
     skills: Optional[List[SkillCategory]] = None
+
+
+class ResumeListItem(BaseModel):
+    name: str
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        populate_by_name = True
+
+
+class PaginatedResumes(BaseModel):
+    """Response model for paginated resume list."""
+
+    total: int
+    page: int
+    page_size: int
+    items: List[ResumeListItem]

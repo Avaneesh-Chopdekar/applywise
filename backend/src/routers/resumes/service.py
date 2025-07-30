@@ -1,12 +1,56 @@
 from datetime import datetime
-from fastapi import APIRouter, HTTPException, status
-from .models import Resume, ResumeUpdate
+from beanie import SortDirection
+from fastapi import HTTPException, status
+from .models import PaginatedResumes, Resume, ResumeListItem, ResumeUpdate
 
 
-async def fetch_resumes():
-    """List all resumes."""
-    resumes = await Resume.find_many().to_list()
-    return {"resumes": resumes}
+async def fetch_resumes(
+    search_name: str = None,
+    min_created_at: datetime = None,
+    max_created_at: datetime = None,
+    sort_by: str = "created_at",
+    sort_order: str = "desc",
+    page: int = 1,
+    page_size: int = 10,
+):
+    """
+    Retrieves a paginated list of all resumes, with optional filtering and sorting.
+    """
+    query = {}
+
+    if search_name:
+        query["name"] = {"$regex": search_name, "$options": "i"}
+    if min_created_at:
+        query["created_at"] = {"$gte": min_created_at}
+    if max_created_at:
+        if "created_at" in query:
+            query["created_at"]["$lte"] = max_created_at
+        else:
+            query["created_at"] = {"$lte": max_created_at}
+
+    sort_direction = (
+        SortDirection.ASCENDING if sort_order == "asc" else SortDirection.DESCENDING
+    )
+    sort_field = (sort_by, sort_direction)
+
+    total_resumes = await Resume.find(query).count()
+
+    resumes_cursor = Resume.find(query).sort(sort_field)
+    resumes = (
+        await resumes_cursor.skip((page - 1) * page_size).limit(page_size).to_list()
+    )
+
+    items = [
+        ResumeListItem.model_validate(resume.model_dump(by_alias=True))
+        for resume in resumes
+    ]
+
+    return PaginatedResumes(
+        total=total_resumes,
+        page=page,
+        page_size=page_size,
+        items=items,
+    )
 
 
 async def create_resume(resume_data: Resume):
