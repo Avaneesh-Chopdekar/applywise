@@ -103,7 +103,7 @@ async def update_resume(resume_id: str, update_data: ResumeUpdate):
 
 async def delete_resume_by_id(resume_id: str):
     """Delete a resume by its ID."""
-    result = await Resume.delete_many({"_id": resume_id})
+    result = await Resume.delete({"_id": resume_id})
     if result.deleted_count == 0:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Resume not found"
