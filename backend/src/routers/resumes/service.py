@@ -44,7 +44,13 @@ async def fetch_resumes(
     )
 
     items = [
-        ResumeListItem.model_validate(resume.model_dump(by_alias=True))
+        ResumeListItem(
+            id=str(resume.id),
+            name=resume.name,
+            starred=resume.starred,
+            created_at=resume.created_at,
+            updated_at=resume.updated_at,
+        )
         for resume in resumes
     ]
 
