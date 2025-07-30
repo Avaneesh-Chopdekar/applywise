@@ -64,7 +64,7 @@ async def fetch_resumes(
 
 async def create_resume(resume_data: Resume):
     """Create a new resume."""
-    existing_resume = await Resume.find_one({"user_id": resume_data.user_id})
+    existing_resume = await Resume.get(resume_data.id)
     if existing_resume:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -76,7 +76,7 @@ async def create_resume(resume_data: Resume):
 
 async def fetch_resume_by_id(resume_id: str):
     """Fetch a resume by its ID."""
-    resume = await Resume.find_one({"_id": resume_id})
+    resume = await Resume.get(resume_id)
     if not resume:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Resume not found"
@@ -86,7 +86,7 @@ async def fetch_resume_by_id(resume_id: str):
 
 async def update_resume(resume_id: str, update_data: ResumeUpdate):
     """Partially update an existing resume."""
-    resume = await Resume.find_one({"_id": resume_id})
+    resume = await Resume.get(resume_id)
     if not resume:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Resume not found"
@@ -97,7 +97,7 @@ async def update_resume(resume_id: str, update_data: ResumeUpdate):
 
     await resume.update({"$set": update_dict})
 
-    updated_resume = await Resume.find_one({"_id": resume_id})
+    updated_resume = await Resume.get(resume_id)
     if not updated_resume:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -109,9 +109,11 @@ async def update_resume(resume_id: str, update_data: ResumeUpdate):
 
 async def delete_resume_by_id(resume_id: str):
     """Delete a resume by its ID."""
-    result = await Resume.delete({"_id": resume_id})
-    if result.deleted_count == 0:
+    result = await Resume.get(resume_id)
+    if not result:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Resume not found"
         )
+
+    await result.delete()
     return {"message": "Resume deleted successfully"}
