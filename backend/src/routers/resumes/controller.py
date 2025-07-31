@@ -1,8 +1,9 @@
 from datetime import datetime
 from typing import Literal, Optional
-from fastapi import APIRouter, Query, status
-from .models import PaginatedResumes, Resume, ResumeUpdate
+from fastapi import APIRouter, Query, Request, status
 
+from ...rate_limiter import limiter
+from .models import PaginatedResumes, Resume, ResumeUpdate
 from .service import (
     create_resume,
     delete_resume_by_id,
@@ -15,7 +16,9 @@ router = APIRouter(prefix="/api/v1/resumes", tags=["Resumes"])
 
 
 @router.get("/", response_model=PaginatedResumes, summary="List Resumes")
+@limiter.limit("10/minute;50/hour")
 async def get_all_resumes(
+    request: Request,
     # Pagination
     page: int = Query(1, ge=1, description="Page number"),
     page_size: int = Query(10, ge=1, le=100, description="Number of items per page"),
@@ -54,13 +57,15 @@ async def get_all_resumes(
 
 
 @router.post("/", status_code=status.HTTP_201_CREATED, response_model=Resume)
-async def post_resume(resume_data: Resume):
+@limiter.limit("5/minute;20/hour")
+async def post_resume(request: Request, resume_data: Resume):
     resume = await create_resume(resume_data)
     return resume
 
 
 @router.get("/{resume_id}", response_model=Resume)
-async def get_resume(resume_id: str):
+@limiter.limit("5/minute;20/hour")
+async def get_resume(request: Request, resume_id: str):
     resume = await fetch_resume_by_id(resume_id)
     return resume
 
@@ -68,7 +73,8 @@ async def get_resume(resume_id: str):
 @router.patch(
     "/{resume_id}", response_model=Resume, summary="Partially Update a Resume"
 )
-async def patch_resume(resume_id: str, update_data: ResumeUpdate):
+@limiter.limit("5/minute;20/hour")
+async def patch_resume(request: Request, resume_id: str, update_data: ResumeUpdate):
     updated_resume = await update_resume(resume_id, update_data)
     return updated_resume
 
@@ -77,5 +83,6 @@ async def patch_resume(resume_id: str, update_data: ResumeUpdate):
     "/{resume_id}",
     status_code=status.HTTP_204_NO_CONTENT,
 )
-async def delete_resume(resume_id: str):
+@limiter.limit("5/minute;20/hour")
+async def delete_resume(request: Request, resume_id: str):
     return await delete_resume_by_id(resume_id)
