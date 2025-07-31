@@ -36,10 +36,10 @@ class JobApplication(Document):
     interview_dates: List[date] = Field(default_factory=list)
     notes: Optional[str] = None
 
-    associated_resume_id: Optional[PydanticObjectId] = Field(
+    associated_resume_id: Optional[str] = Field(
         default=None, description="ID of the resume used for this application"
     )
-    associated_analysis_id: Optional[PydanticObjectId] = Field(
+    associated_analysis_id: Optional[str] = Field(
         default=None, description="ID of the ATS analysis for this application"
     )
 
@@ -54,7 +54,7 @@ class JobApplication(Document):
 class JobApplicationListItem(BaseModel):
     """Response model for job application list items."""
 
-    id: str = Field(alias="_id")
+    id: PydanticObjectId = Field(alias="_id")
     user_id: str
     job_title: str
     company_name: str
