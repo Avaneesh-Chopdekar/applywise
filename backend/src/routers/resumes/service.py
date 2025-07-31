@@ -1,7 +1,7 @@
 from datetime import datetime
 from beanie import PydanticObjectId, SortDirection
-from fastapi import HTTPException, status
 from .models import PaginatedResumes, Resume, ResumeListItem, ResumeUpdate
+from .exceptions import ResumeAlreadyExistsError, ResumeNotFoundError, ResumeUpdateError
 
 
 async def fetch_resumes(
@@ -65,10 +65,7 @@ async def create_resume(resume_data: Resume):
     if hasattr(resume_data, "id") and resume_data.id is not None:
         existing_resume = await Resume.get(resume_data.id)
         if existing_resume:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Resume for this user already exists.",
-            )
+            raise ResumeAlreadyExistsError(id=resume_data.id)
     await resume_data.insert()
     return resume_data
 
@@ -77,9 +74,7 @@ async def fetch_resume_by_id(resume_id: str):
     """Fetch a resume by its ID."""
     resume = await Resume.get(resume_id)
     if not resume:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Resume not found"
-        )
+        raise ResumeNotFoundError(id=resume_id)
     return resume
 
 
@@ -87,9 +82,7 @@ async def update_resume(resume_id: str, update_data: ResumeUpdate):
     """Partially update an existing resume."""
     resume = await Resume.get(resume_id)
     if not resume:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Resume not found"
-        )
+        raise ResumeNotFoundError(id=resume_id)
 
     update_dict = update_data.model_dump(exclude_unset=True)
     update_dict["updated_at"] = datetime.utcnow()
@@ -98,10 +91,7 @@ async def update_resume(resume_id: str, update_data: ResumeUpdate):
 
     updated_resume = await Resume.get(resume_id)
     if not updated_resume:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to retrieve updated resume",
-        )
+        raise ResumeUpdateError(id=resume_id)
 
     return updated_resume
 
@@ -110,9 +100,7 @@ async def delete_resume_by_id(resume_id: str):
     """Delete a resume by its ID."""
     result = await Resume.get(resume_id)
     if not result:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Resume not found"
-        )
+        raise ResumeNotFoundError(id=resume_id)
 
     await result.delete()
     return {"message": "Resume deleted successfully"}
