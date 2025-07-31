@@ -88,12 +88,13 @@ async def create_job_application(
     job_application: JobApplication,
 ) -> JobApplicationListItem:
     """Creates a new job application entry."""
-    existing_application = await JobApplication.get(job_application.id)
-    if existing_application:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Job application for this user already exists.",
-        )
+    if hasattr(job_application, "id") and job_application.id is not None:
+        existing_application = await JobApplication.get(job_application.id)
+        if existing_application:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Job application for this user already exists.",
+            )
     await job_application.insert()
     return job_application
 

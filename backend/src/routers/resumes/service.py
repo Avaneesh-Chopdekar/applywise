@@ -62,12 +62,13 @@ async def fetch_resumes(
 
 async def create_resume(resume_data: Resume):
     """Create a new resume."""
-    existing_resume = await Resume.get(resume_data.id)
-    if existing_resume:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Resume for this user already exists.",
-        )
+    if hasattr(resume_data, "id") and resume_data.id is not None:
+        existing_resume = await Resume.get(resume_data.id)
+        if existing_resume:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Resume for this user already exists.",
+            )
     await resume_data.insert()
     return resume_data
 
