@@ -96,24 +96,59 @@ async def analyze_resume(request: ATSRequest) -> ATSAnalysis:
         )
 
 
-async def save_ats_analysis(ats_analysis: ATSAnalysis) -> ATSCoreOutput:
+async def delete_analysis_by_id(analysis_id: str) -> None:
     """
-    Save the ATS analysis to the database.
+    Delete an ATS analysis by its ID.
     """
-    try:
-        if hasattr(ats_analysis, "id") and ats_analysis.id:
-            existing_document = await ATSAnalysis.get(ats_analysis.id)
-            if existing_document:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="ATS analysis for this resume already exists.",
-                )
-
-        await ats_analysis.insert()
-        return ats_analysis
-
-    except Exception as e:
+    analysis = await ATSAnalysis.get(analysis_id)
+    if not analysis:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error saving ATS analysis: {str(e)}",
+            status_code=status.HTTP_404_NOT_FOUND, detail="ATS Analysis not found"
         )
+
+    await analysis.delete()
+    return {"detail": "ATS Analysis deleted successfully"}
+
+
+async def list_ats_analyses(
+    resume_id: str = None,
+    job_title: str = None,
+    skip: int = 0,
+    limit: int = 10,
+) -> list[ATSAnalysis]:
+    """
+    List all ATS analyses, optionally filtered by resume ID and/or job title, with pagination.
+    """
+    query = {}
+
+    if resume_id:
+        query["resume_id"] = resume_id
+    if job_title:
+        query["job_title"] = job_title
+
+    if query:
+        analyses = await ATSAnalysis.find(query).skip(skip).limit(limit).to_list()
+    else:
+        analyses = await ATSAnalysis.find_all().skip(skip).limit(limit).to_list()
+
+    return analyses
+
+
+async def update_title_and_description(
+    analysis_id: str, job_title: str, job_description: str
+) -> ATSAnalysis:
+    """
+    Update the job title and description of an existing ATS analysis.
+    """
+    analysis = await ATSAnalysis.get(analysis_id)
+    if not analysis:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="ATS Analysis not found"
+        )
+
+    analysis.job_title = job_title
+    analysis.job_description = job_description
+
+    await analysis.save()
+
+    return analysis
