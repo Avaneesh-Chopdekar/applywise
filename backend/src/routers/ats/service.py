@@ -8,6 +8,12 @@ from pydantic import ValidationError
 
 from .models import ATSCoreOutput, ATSRequest, ATSAnalysis, ATSResponse
 from ..resumes.models import Resume
+from ..resumes.exceptions import ResumeNotFoundError
+from .exceptions import (
+    ATSAnalysisNotFoundError,
+    DataValidationError,
+    InvalidJSONFormatError,
+)
 
 
 async def analyze_resume(request: ATSRequest) -> ATSAnalysis:
@@ -17,9 +23,7 @@ async def analyze_resume(request: ATSRequest) -> ATSAnalysis:
 
     resume = await Resume.get(request.resume_id)
     if not resume:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Resume not found"
-        )
+        raise ResumeNotFoundError(id=request.resume_id)
 
     resume_data_for_llm = resume.model_dump(
         mode="json", exclude_unset=True, by_alias=False
@@ -76,14 +80,9 @@ async def analyze_resume(request: ATSRequest) -> ATSAnalysis:
         return ATSResponse(**core_analysis_data.model_dump())
 
     except ValidationError as e:
-        print(f"Pydantic Validation Error: {e.errors()}")
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=f"Data validation failed: {e.errors()}",
-        )
+        raise DataValidationError(detail=f"LLM output validation failed: {str(e)}")
     except json.JSONDecodeError as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        raise InvalidJSONFormatError(
             detail=f"LLM returned invalid JSON: {llm_raw_content}. Error: {str(e)}",
         )
     except Exception as e:
@@ -96,15 +95,13 @@ async def analyze_resume(request: ATSRequest) -> ATSAnalysis:
         )
 
 
-async def delete_analysis_by_id(analysis_id: str) -> None:
+async def delete_analysis_by_id(analysis_id: str):
     """
     Delete an ATS analysis by its ID.
     """
     analysis = await ATSAnalysis.get(analysis_id)
     if not analysis:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="ATS Analysis not found"
-        )
+        raise ATSAnalysisNotFoundError(id=analysis_id)
 
     await analysis.delete()
     return {"detail": "ATS Analysis deleted successfully"}
@@ -142,9 +139,7 @@ async def update_title_and_description(
     """
     analysis = await ATSAnalysis.get(analysis_id)
     if not analysis:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="ATS Analysis not found"
-        )
+        raise ATSAnalysisNotFoundError(id=analysis_id)
 
     analysis.job_title = job_title
     analysis.job_description = job_description
