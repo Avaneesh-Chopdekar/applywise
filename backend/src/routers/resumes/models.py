@@ -87,7 +87,7 @@ class ResumeUpdate(BaseModel):
 
 
 class ResumeListItem(BaseModel):
-    id: str
+    id: str = Field(alias="_id")
     name: str
     starred: bool
     created_at: datetime

@@ -1,5 +1,5 @@
 from datetime import datetime
-from beanie import SortDirection
+from beanie import PydanticObjectId, SortDirection
 from fastapi import HTTPException, status
 from .models import PaginatedResumes, Resume, ResumeListItem, ResumeUpdate
 
@@ -43,16 +43,14 @@ async def fetch_resumes(
         await resumes_cursor.skip((page - 1) * page_size).limit(page_size).to_list()
     )
 
-    items = [
-        ResumeListItem(
-            id=str(resume.id),
-            name=resume.name,
-            starred=resume.starred,
-            created_at=resume.created_at,
-            updated_at=resume.updated_at,
-        )
-        for resume in resumes
-    ]
+    items = []
+    for resume in resumes:
+        resume_dict = resume.model_dump(by_alias=True)
+
+        if "_id" in resume_dict and isinstance(resume_dict["_id"], PydanticObjectId):
+            resume_dict["_id"] = str(resume_dict["_id"])
+
+        items.append(ResumeListItem.model_validate(resume_dict))
 
     return PaginatedResumes(
         total=total_resumes,
