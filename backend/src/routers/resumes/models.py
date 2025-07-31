@@ -58,8 +58,8 @@ class SkillCategory(BaseModel):
 class Resume(Document):
     """Main Pydantic model for a resume document."""
 
-    user_id: str = Field(unique=True)
-    name: str
+    user_id: str = Field(index=True)
+    name: str = Field(..., index=True, max_length=100)
     starred: bool = False
     contact: Optional[Contact] = None
     education: List[Education] = Field(default_factory=list)

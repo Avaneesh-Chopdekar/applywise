@@ -1,4 +1,5 @@
-from typing import List, Optional
+from datetime import datetime
+from typing import List
 from pydantic import BaseModel, Field
 from beanie import Document
 
@@ -24,15 +25,18 @@ class ATSCoreOutput(BaseModel):
     project_categories: List[str]
 
 
-class ATSAnalysis(Document, ATSCoreOutput):
+class ATSAnalysis(Document):
     """
     Model for the analysis of a resume, stored in the database.
-    Combines LLM output with job context.
+    It will embed the ATSCoreOutput.
     """
 
-    job_title: str
+    llm_analysis: ATSCoreOutput
+
+    job_title: str = Field(index=True)
     job_description: str
     resume_id: str = Field(index=True)
+    created_at: datetime = Field(default_factory=datetime.utcnow)
 
     class Settings:
         name = "ats_analyses"
