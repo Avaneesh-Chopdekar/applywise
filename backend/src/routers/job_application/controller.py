@@ -1,7 +1,8 @@
 from datetime import date
 from typing import Literal, Optional
-from fastapi import APIRouter, Query, status
+from fastapi import APIRouter, Query, Request, status
 
+from ...rate_limiter import limiter
 from .models import (
     JobApplication,
     JobApplicationListItem,
@@ -24,7 +25,9 @@ router = APIRouter(prefix="/api/v1/job_applications", tags=["Job Applications"])
     response_model=PaginatedJobApplications,
     summary="List all job applications with pagination and filters",
 )
+@limiter.limit("10/minute;50/hour")
 async def list_job_applications(
+    request: Request,
     page: int = Query(1, ge=1, description="Page number"),
     page_size: int = Query(10, ge=1, le=100, description="Number of items per page"),
     user_id: Optional[str] = Query(
@@ -79,7 +82,8 @@ async def list_job_applications(
     response_model=JobApplication,
     summary="Get a single job application by ID",
 )
-async def get_job_application(app_id: str):
+@limiter.limit("5/minute;20/hour")
+async def get_job_application(request: Request, app_id: str):
     """
     Retrieves a single job application by its ID.
     """
@@ -93,7 +97,8 @@ async def get_job_application(app_id: str):
     status_code=status.HTTP_201_CREATED,
     summary="Create a new job application entry",
 )
-async def post_job_application(job_application: JobApplication):
+@limiter.limit("5/minute;20/hour")
+async def post_job_application(request: Request, job_application: JobApplication):
     """
     Creates a new job application entry.
     """
@@ -106,7 +111,10 @@ async def post_job_application(job_application: JobApplication):
     response_model=JobApplicationListItem,
     summary="Partially update a job application entry",
 )
-async def patch_job_application(app_id: str, update_data: JobApplicationUpdate):
+@limiter.limit("5/minute;20/hour")
+async def patch_job_application(
+    request: Request, app_id: str, update_data: JobApplicationUpdate
+):
     """
     Partially updates an existing job application entry.
     """
@@ -119,5 +127,6 @@ async def patch_job_application(app_id: str, update_data: JobApplicationUpdate):
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Delete a job application entry",
 )
-async def delete_job_application(app_id: str):
+@limiter.limit("5/minute;20/hour")
+async def delete_job_application(request: Request, app_id: str):
     return await delete_job_application_by_id(app_id)
