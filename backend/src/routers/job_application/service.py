@@ -1,5 +1,5 @@
 from datetime import datetime
-from beanie import PydanticObjectId
+from beanie import PydanticObjectId, SortDirection
 from fastapi import HTTPException, status
 
 from .models import (
@@ -21,6 +21,8 @@ async def fetch_job_applications(
     max_application_date: datetime = None,
     has_notes: bool = None,
     has_interviews: bool = None,
+    sort_by: str = "application_date",
+    sort_order: str = "desc",
 ) -> PaginatedJobApplications:
     """
     Fetches a paginated list of job applications with optional filters.
@@ -28,27 +30,51 @@ async def fetch_job_applications(
     query = {}
 
     if user_id:
-        query["user_id"] = PydanticObjectId(user_id)
+        query["user_id"] = user_id
+
     if job_title:
         query["job_title"] = {"$regex": job_title, "$options": "i"}
     if company_name:
         query["company_name"] = {"$regex": company_name, "$options": "i"}
     if status:
         query["status"] = status
+
     if min_application_date:
         query["application_date"] = {"$gte": min_application_date}
     if max_application_date:
-        query.setdefault("application_date", {})["$lte"] = max_application_date
+        if "application_date" in query:
+            query["application_date"]["$lte"] = max_application_date
+        else:
+            query["application_date"] = {"$lte": max_application_date}
+
     if has_notes is not None:
-        query["notes"] = {"$exists": has_notes}
+        if has_notes:
+            query["notes"] = {"$ne": None, "$ne": ""}
+        else:
+            query["$or"] = [{"notes": None}, {"notes": ""}]
+
     if has_interviews is not None:
-        query["interview_dates"] = {"$exists": has_interviews}
+        if has_interviews:
+            query["interview_dates"] = {"$ne": [], "$ne": None}
+        else:
+            query["$or"] = [
+                {"interview_dates": []},
+                {"interview_dates": None},
+            ]
 
-    total_count = await JobApplication.find(query).count()
-    skip = (page - 1) * page_size
+    sort_direction = (
+        SortDirection.ASCENDING if sort_order == "asc" else SortDirection.DESCENDING
+    )
+    sort_field = (sort_by, sort_direction)
 
-    applications_cursor = JobApplication.find(query).skip(skip).limit(page_size)
-    applications = await applications_cursor.to_list()
+    total_applications = await JobApplication.find(query).count()
+
+    applications_cursor = JobApplication.find(query).sort(sort_field)
+    applications = (
+        await applications_cursor.skip((page - 1) * page_size)
+        .limit(page_size)
+        .to_list()
+    )
 
     items = [
         JobApplicationListItem.model_validate(app.model_dump(by_alias=True))
@@ -56,7 +82,7 @@ async def fetch_job_applications(
     ]
 
     return PaginatedJobApplications(
-        total=total_count,
+        total=total_applications,
         page=page,
         page_size=page_size,
         items=items,
