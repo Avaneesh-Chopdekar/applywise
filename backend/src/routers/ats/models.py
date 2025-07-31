@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import List
 from pydantic import BaseModel, Field
-from beanie import Document
+from beanie import Document, Indexed
 
 
 class ATSRequest(BaseModel):
@@ -33,9 +33,9 @@ class ATSAnalysis(Document):
 
     llm_analysis: ATSCoreOutput
 
-    job_title: str = Field(index=True)
+    job_title: str = Indexed(str, unique=True)
     job_description: str
-    resume_id: str = Field(index=True)
+    resume_id: str = Indexed(str)
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
     class Settings:

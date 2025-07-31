@@ -1,7 +1,7 @@
 from typing import List, Optional
 from datetime import datetime
 
-from beanie import Document
+from beanie import Document, Indexed
 from pydantic import BaseModel, Field, EmailStr
 
 
@@ -58,8 +58,8 @@ class SkillCategory(BaseModel):
 class Resume(Document):
     """Main Pydantic model for a resume document."""
 
-    user_id: str = Field(index=True)
-    name: str = Field(..., index=True, max_length=100)
+    user_id: str = Indexed(str)
+    name: str = Indexed(str, unique=True)
     starred: bool = False
     contact: Optional[Contact] = None
     education: List[Education] = Field(default_factory=list)
