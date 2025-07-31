@@ -80,3 +80,19 @@ class PaginatedJobApplications(BaseModel):
     page: int
     page_size: int
     items: List[JobApplicationListItem]
+
+
+class JobApplicationUpdate(BaseModel):
+    """Model for partially updating a job application."""
+
+    job_title: Optional[str] = None
+    company_name: Optional[str] = None
+    company_website: Optional[HttpUrl] = None
+    job_url: Optional[HttpUrl] = None
+    location: Optional[str] = None
+    status: Optional[str] = None
+    application_date: Optional[date] = None
+    interview_dates: Optional[List[date]] = None
+    notes: Optional[str] = None
+    associated_resume_id: Optional[str] = None
+    associated_analysis_id: Optional[str] = None
