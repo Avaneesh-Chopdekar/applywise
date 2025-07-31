@@ -8,6 +8,11 @@ from .models import (
     JobApplicationUpdate,
     PaginatedJobApplications,
 )
+from .exceptions import (
+    InvalidIDFormatError,
+    JobApplicationAlreadyExistsError,
+    JobApplicationNotFoundError,
+)
 
 
 async def fetch_job_applications(
@@ -96,16 +101,11 @@ async def get_job_application_by_id(app_id: str) -> JobApplication:
     try:
         app_obj_id = PydanticObjectId(app_id)
     except Exception:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid application ID format",
-        )
+        raise InvalidIDFormatError(id=app_id)
 
     job_app = await JobApplication.get(app_obj_id)
     if not job_app:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Job application not found"
-        )
+        raise JobApplicationNotFoundError(id=app_id)
 
     return job_app
 
@@ -117,10 +117,7 @@ async def create_job_application(
     if hasattr(job_application, "id") and job_application.id is not None:
         existing_application = await JobApplication.get(job_application.id)
         if existing_application:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Job application for this user already exists.",
-            )
+            raise JobApplicationAlreadyExistsError(id=job_application.id)
     await job_application.insert()
     return job_application
 
@@ -135,16 +132,11 @@ async def update_job_application(
     try:
         app_obj_id = PydanticObjectId(app_id)
     except Exception:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid application ID format",
-        )
+        raise InvalidIDFormatError(id=app_id)
 
     job_app = await JobApplication.get(app_obj_id)
     if not job_app:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Job application not found"
-        )
+        raise JobApplicationNotFoundError(id=app_id)
 
     update_dict = update_data.model_dump(exclude_unset=True)
 
@@ -177,16 +169,11 @@ async def delete_job_application_by_id(app_id: str) -> dict:
     try:
         app_obj_id = PydanticObjectId(app_id)
     except Exception:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid application ID format",
-        )
+        raise InvalidIDFormatError(id=app_id)
 
     job_app = await JobApplication.get(app_obj_id)
     if not job_app:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Job application not found"
-        )
+        raise JobApplicationNotFoundError(id=app_id)
 
     await job_app.delete()
     return {"detail": "Job application deleted successfully"}
