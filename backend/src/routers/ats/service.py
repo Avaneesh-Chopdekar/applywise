@@ -1,8 +1,10 @@
+from datetime import datetime
 import json
 
 import os
 from fastapi import HTTPException, status
 from groq import Groq
+from pydantic import ValidationError
 
 from .models import ATSCoreOutput, ATSRequest, ATSAnalysis, ATSResponse
 from ..resumes.models import Resume
@@ -58,34 +60,60 @@ async def analyze_resume(request: ATSRequest) -> ATSAnalysis:
 
         llm_raw_content = response.choices[0].message.content
 
-        llm_output = json.loads(llm_raw_content)
+        llm_output_dict = json.loads(llm_raw_content)
 
-        output_dict = dict(
-            relevance_score=llm_output["relevance_score"],
-            skills=llm_output["skills"],
-            total_years_of_experience=llm_output["total_years_of_experience"],
-            project_categories=llm_output["project_categories"],
+        core_analysis_data = ATSCoreOutput.model_validate(llm_output_dict)
+
+        ats_analysis_to_store = ATSAnalysis(
+            llm_analysis=core_analysis_data,
+            job_title=request.job_title,
+            job_description=request.job_description,
+            resume_id=request.resume_id,
         )
 
-        # ats_analysis = ATSAnalysis(
-        #     **output_dict,
-        #     job_title=request.job_title,
-        #     job_description=request.job_description,
-        #     resume_id=request.resume_id,
-        # )
+        await ats_analysis_to_store.insert()
 
-        # await ats_analysis.insert()
+        return ATSResponse(**core_analysis_data.model_dump())
 
-        return ATSResponse(**output_dict)
-
+    except ValidationError as e:
+        print(f"Pydantic Validation Error: {e.errors()}")
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"Data validation failed: {e.errors()}",
+        )
     except json.JSONDecodeError as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"LLM returned invalid JSON: {llm_raw_content}. Error: {str(e)}",
         )
     except Exception as e:
-        print(f"Detailed error in analyze_resume: {e}")
+        print(f"General error in analyze_resume: {e.__class__.__name__}: {e}")
+        if isinstance(e, HTTPException):
+            raise e
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error analyzing resume: {str(e)}",
+            detail=f"An unexpected error occurred during resume analysis: {str(e)}",
+        )
+
+
+async def save_ats_analysis(ats_analysis: ATSAnalysis) -> ATSCoreOutput:
+    """
+    Save the ATS analysis to the database.
+    """
+    try:
+        if hasattr(ats_analysis, "id") and ats_analysis.id:
+            existing_document = await ATSAnalysis.get(ats_analysis.id)
+            if existing_document:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="ATS analysis for this resume already exists.",
+                )
+
+        await ats_analysis.insert()
+        return ats_analysis
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error saving ATS analysis: {str(e)}",
         )
