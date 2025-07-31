@@ -15,12 +15,12 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(lifespan=lifespan)
+app = FastAPI(
+    lifespan=lifespan,
+    title="ApplyWise API",
+    description="Create and manage job applications and resumes with ApplyWise and get insights from ATS analysis.",
+    version="1.0.0",
+)
 
 
 register_routes(app)
-
-
-@app.get("/api/v1/health-check", tags=["Health Check"])
-def health_check():
-    return {"status": "ok"}
