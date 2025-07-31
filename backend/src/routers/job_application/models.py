@@ -1,7 +1,7 @@
 from datetime import date, datetime
 from typing import List, Optional
 from beanie import Document, Indexed, PydanticObjectId
-from pydantic import Field, HttpUrl
+from pydantic import BaseModel, Field, HttpUrl
 from enum import Enum
 
 
@@ -49,3 +49,34 @@ class JobApplication(Document):
     async def save(self, *args, **kwargs):
         self.last_updated = datetime.utcnow()
         await super().save(*args, **kwargs)
+
+
+class JobApplicationListItem(BaseModel):
+    """Response model for job application list items."""
+
+    id: str = Field(alias="_id")
+    user_id: str
+    job_title: str
+    company_name: str
+    status: str
+    application_date: date
+    last_updated: datetime
+    associated_resume_id: Optional[str] = None
+    associated_analysis_id: Optional[str] = None
+
+    class Config:
+        populate_by_name = True
+        json_encoders = {
+            PydanticObjectId: str,
+            datetime: lambda dt: dt.isoformat(),
+            date: lambda d: d.isoformat(),
+        }
+
+
+class PaginatedJobApplications(BaseModel):
+    """Response model for paginated job application list."""
+
+    total: int
+    page: int
+    page_size: int
+    items: List[JobApplicationListItem]
