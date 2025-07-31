@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { Heading } from "@chakra-ui/react";
 
 export const Route = createFileRoute("/")({
   component: Index,
@@ -6,8 +7,8 @@ export const Route = createFileRoute("/")({
 
 function Index() {
   return (
-    <div>
-      <h1>Welcome Home!</h1>
-    </div>
+    <Heading size="2xl" letterSpacing="tight">
+      ApplyWise
+    </Heading>
   );
 }
