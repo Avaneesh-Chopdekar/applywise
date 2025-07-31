@@ -59,6 +59,7 @@ class Resume(Document):
     """Main Pydantic model for a resume document."""
 
     user_id: str = Indexed(str)
+    resume_info: str = Indexed(str, unique=True)
     name: str = Indexed(str, unique=True)
     starred: bool = False
     contact: Optional[Contact] = None
@@ -78,6 +79,7 @@ class Resume(Document):
 
 
 class ResumeUpdate(BaseModel):
+    resume_info: Optional[str] = None
     name: Optional[str] = None
     contact: Optional[Contact] = None
     education: Optional[List[Education]] = None
@@ -88,7 +90,7 @@ class ResumeUpdate(BaseModel):
 
 class ResumeListItem(BaseModel):
     id: str = Field(alias="_id")
-    name: str
+    resume_info: str
     starred: bool
     created_at: datetime
     updated_at: datetime
