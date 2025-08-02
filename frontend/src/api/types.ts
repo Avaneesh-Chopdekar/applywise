@@ -80,6 +80,15 @@ export interface ATSResponse {
   project_categories: string[];
 }
 
+export interface ATSAnalysis {
+  _id: string;
+  llm_analysis: ATSResponse;
+  resume_id: string;
+  job_title: string;
+  job_description: string;
+  created_at: string;
+}
+
 export interface JobApplication {
   _id: string;
   user_id: string;
