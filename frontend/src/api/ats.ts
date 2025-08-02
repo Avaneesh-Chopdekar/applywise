@@ -21,7 +21,7 @@ export const analyzeResume = async (
   return handleApiResponse<ATSResponse>(response);
 };
 
-interface GetAnalysisHistoryParams {
+export interface GetAnalysisHistoryParams {
   resumeId?: string;
   jobTitle?: string;
   skip?: number;
@@ -46,7 +46,7 @@ export const getAnalysisHistory = async (
   return handleApiResponse<ATSAnalysis[]>(response);
 };
 
-interface UpdateAnalysisParams {
+export interface UpdateAnalysisParams {
   analysisId: string;
   jobTitle: string;
   jobDescription: string;
